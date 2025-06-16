@@ -1,26 +1,53 @@
-# streamlit_app.py
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 
-# 파일 업로드
-ev_file = st.file_uploader("201007_202506_전기차등록현황.xlsx", type=["xlsx"])
-charger_file = st.file_uploader("202412년_지역별_전기차_충전기_구축현황(누적).xlsx", type=["xlsx"])
+# 페이지 설정
+st.set_page_config(page_title="전기차와 충전기 분석", layout="wide")
 
-if ev_file and charger_file:
-    ev_df = pd.read_csv(ev_file) if ev_file.name.endswith('.csv') else pd.read_excel(ev_file)
-    charger_df = pd.read_csv(charger_file) if charger_file.name.endswith('.csv') else pd.read_excel(charger_file)
+# 제목
+st.title("🔌 전기차 보급률과 충전기 수의 관계 분석")
 
-    # 전처리: 시군구 기준 병합
-    merged = pd.merge(ev_df, charger_df, on="시군구")
-    merged["충전기당차량수"] = merged["전기차등록수"] / merged["충전기수"]
+# 데이터 불러오기
+@st.cache_data
+def load_data():
+    df = pd.read_csv("merged_ev_charger.csv", encoding='cp949')  # 같은 폴더에 있어야 함
+    return df
 
-    # 상관계수 출력
-    corr = merged["전기차등록수"].corr(merged["충전기수"])
-    st.metric("상관계수 (r)", round(corr, 3))
+df = load_data()
 
-    # 산점도 시각화
-    fig, ax = plt.subplots()
-    sns.regplot(data=merged, x="충전기수", y="전기차등록수", ax=ax)
-    st.pyplot(fig)
+# 데이터 미리보기
+st.subheader("📊 데이터 미리보기")
+st.dataframe(df)
+
+# 산점도 시각화
+st.subheader("🔍 충전기 수 vs 전기차 등록대수 (산점도)")
+fig1, ax1 = plt.subplots(figsize=(8, 5))
+sns.scatterplot(data=df, x='충전기수', y='전기차등록대수', ax=ax1)
+plt.xlabel("충전기 수")
+plt.ylabel("전기차 등록대수")
+st.pyplot(fig1)
+
+# 회귀선 시각화
+st.subheader("📈 선형 회귀 분석")
+X = df[['충전기수']]
+y = df['전기차등록대수']
+model = LinearRegression().fit(X, y)
+pred = model.predict(X)
+
+fig2, ax2 = plt.subplots(figsize=(8, 5))
+sns.regplot(x='충전기수', y='전기차등록대수', data=df, ax=ax2, line_kws={"color": "red"})
+plt.xlabel("충전기 수")
+plt.ylabel("전기차 등록대수")
+st.pyplot(fig2)
+
+# 회귀계수 및 상관계수 출력
+st.markdown("### 📌 분석 요약")
+st.write(f"**회귀계수 (기울기)**: {model.coef_[0]:,.2f}")
+st.write(f"**절편**: {model.intercept_:,.2f}")
+corr = df['충전기수'].corr(df['전기차등록대수'])
+st.write(f"**피어슨 상관계수**: {corr:.3f}")
+
+st.caption("※ 데이터는 전국 합계 기준입니다.")
