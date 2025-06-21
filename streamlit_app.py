@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
 # 페이지 설정
@@ -13,7 +12,7 @@ st.title("🔌 전기차 보급률과 충전기 수의 관계 분석")
 # 데이터 불러오기
 @st.cache_data
 def load_data():
-    df = pd.read_csv("merged_ev_charger.csv", encoding='cp949')  # 같은 폴더에 있어야 함
+    df = pd.read_csv("merged_ev_charger.csv", encoding='cp949')
     return df
 
 df = load_data()
@@ -22,26 +21,23 @@ df = load_data()
 st.subheader("📊 데이터 미리보기")
 st.dataframe(df)
 
-# 산점도 시각화
-st.subheader("🔍 충전기 수 vs 전기차 등록대수 (산점도)")
-fig1, ax1 = plt.subplots(figsize=(8, 5))
-sns.scatterplot(data=df, x='충전기수', y='전기차등록대수', ax=ax1)
-plt.xlabel("충전기 수")
-plt.ylabel("전기차 등록대수")
-st.pyplot(fig1)
+# 산점도 + 회귀선 시각화 (Plotly)
+st.subheader("📈 Plotly 기반 회귀 시각화")
+fig = px.scatter(
+    df,
+    x="충전기수",
+    y="전기차등록대수",
+    title="충전기 수 vs 전기차 등록대수",
+    labels={"충전기수": "충전기 수", "전기차등록대수": "전기차 등록대수"},
+    trendline="ols",  # 회귀선 추가
+    template="plotly_white"
+)
+st.plotly_chart(fig)
 
-# 회귀선 시각화
-st.subheader("📈 선형 회귀 분석")
+# 선형 회귀 분석 (수치 출력용)
 X = df[['충전기수']]
 y = df['전기차등록대수']
 model = LinearRegression().fit(X, y)
-pred = model.predict(X)
-
-fig2, ax2 = plt.subplots(figsize=(8, 5))
-sns.regplot(x='충전기수', y='전기차등록대수', data=df, ax=ax2, line_kws={"color": "red"})
-plt.xlabel("충전기 수")
-plt.ylabel("전기차 등록대수")
-st.pyplot(fig2)
 
 # 회귀계수 및 상관계수 출력
 st.markdown("### 📌 분석 요약")
