@@ -29,7 +29,7 @@ fig = px.scatter(
     y="전기차등록대수",
     title="충전기 수 vs 전기차 등록대수",
     labels={"충전기수": "충전기 수", "전기차등록대수": "전기차 등록대수"},
-    trendline="ols",  # 회귀선 추가
+    trendline="ols",
     template="plotly_white"
 )
 st.plotly_chart(fig)
@@ -38,18 +38,41 @@ st.plotly_chart(fig)
 X = df[['충전기수']]
 y = df['전기차등록대수']
 model = LinearRegression().fit(X, y)
+r_squared = model.score(X, y)
 
 # 회귀계수 및 상관계수 출력
 st.markdown("### 📌 분석 요약")
 st.write(f"**회귀계수 (기울기)**: {model.coef_[0]:,.2f}")
 st.write(f"**절편**: {model.intercept_:,.2f}")
+st.write(f"**R² (설명력)**: {r_squared:.3f}")
 corr = df['충전기수'].corr(df['전기차등록대수'])
 st.write(f"**피어슨 상관계수**: {corr:.3f}")
 
-#상관계수가 높다 (r ≥ 0.7) → 강한 선형 관계
+st.markdown("""
+#### 🔍 해석 기준
+- **상관계수가 높다 (r ≥ 0.7)** → 강한 선형 관계
+- **회귀모델의 기울기가 양(+)이다** → 충전기 수가 늘수록 등록대수가 증가함
+- **R² 값이 높다** → 충전기 수만으로도 전기차 등록을 상당히 설명할 수 있음
+""")
 
-#회귀모델의 기울기가 양(+)이다 → 충전기 수가 늘수록 등록대수가 증가함
+# -------------------------------
+# ✅ 시계열 추세 시각화 추가
+# -------------------------------
+st.subheader("📊 시계열 추세: 충전기 수와 전기차 등록 변화")
 
-#(선택) R² 값이 높다면 설명력도 확보됨 → 추후 추가 가능
+# '년월' 열을 datetime으로 변환
+df['년월'] = pd.to_datetime(df['년월'], format='%b-%y')
+
+# 시계열 그래프 그리기
+fig_time = px.line(
+    df.sort_values('년월'),
+    x='년월',
+    y=['충전기수', '전기차등록대수'],
+    title='시간에 따른 충전기 수 및 전기차 등록대수 변화',
+    labels={'value': '수량', 'variable': '항목'},
+    markers=True,
+    template='plotly_white'
+)
+st.plotly_chart(fig_time)
 
 st.caption("※ 데이터는 전국 합계 기준입니다.")
